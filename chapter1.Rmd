@@ -1,13 +1,20 @@
 
-# About the project
+# 1 - Intro
+### Seppo wRites some notes heRe
 
-*Write a short description about the course and add a link to your GitHub repository here. This is an R Markdown (.Rmd) file so you should use R Markdown syntax.*
+_Fri Oct 30, 2020_
+
+Here is the link: https://github.com/avaruusseppo/IODS-project
+
+*I have some experience with R already but yet not too familiar with
+the R markdown. Thanks to Kimmo for giving a hint about R bookdown.
+Also thanks for the peppy warm up speech!*
 
 ```{r}
-# This is a so-called "R chunk" where you can write R code.
+# Let us do something in this "R chunk" .
 
-date()
+plot(sin,from=-2,to=2,xlab="days after course start",ylab = "enthusiasm")
 
 ```
-The text continues here.
+A __small__ gRaph of my musings.
 

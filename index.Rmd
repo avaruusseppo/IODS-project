@@ -1,5 +1,6 @@
 ---
 title: "IODS course project"
+author: "Seppo Nyrkkö (seppo.nyrkko at helsinki.fi)"
 output:
   html_document:
     theme: cosmo
