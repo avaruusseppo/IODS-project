@@ -1,13 +1,152 @@
-# Insert chapter 2 title here
+# Chapter 2 - Data analysis exercise
 
-*Describe the work you have done this week and summarize your learning.*
+Let us begin
+### i) I load a prepared data set and examine its contents.
 
-- Describe your work and results clearly. 
-- Assume the reader has an introductory course level understanding of writing and reading R code as well as statistical methods.
-- Assume the reader has no previous knowledge of your data or the more advanced methods you are using.
+Loading a prepared csv table, containing data from a learning study
+(International survey of Approaches to Learning, Kimmo Vehkalahti, fall 2016).
 
 ```{r}
-date()
+lrn14<-read.csv("data/learning2014.csv")
+str(lrn14)
 ```
 
-Here we go again...
+By examining the structure, we can see that the data has 166 observations in 7 variable columns.
+A quick overview:
+
+* Three background attributes given from the informants: __attitude estimate, age and gender__.
+
+* Three computed learning factors are: __surface, deep and strategic__.
+
+* Data points have a raw course __points__ score. (Note! Zero point scores are filtered out.)
+
+### ii) A graphical overview of the data
+
+```{r}
+# Access the 'ggplot2' graphics package
+library(ggplot2)
+
+# A scatter plot of students attitude and exam points
+qplot(attitude, points, col = gender, data = lrn14) + geom_smooth(method = "lm")
+```
+
+When we examine graphically the correlation of attitude to learning and the scores,
+we can find a positive correlation. What we can see here is that the gender is not too much a factor in the course scores.
+
+
+The **summary() function**, quickly shows the ranges where the values reside.
+
+```{r}
+# This show summaries of the variables in the data
+summary(lrn14)
+```
+
+The learning mode parameters (*deep, stra, surf*) are averaged from a Likert style (1-5) questionnaire.
+The *attitude* is the subjective meter of interest towards learning statistics.
+The *age* is the student's age in years.
+
+The *exam* points (used as an output variable in this study) vary from 7 to 33. 
+By looking at the 1st and 3rd 
+quantile in the summary output, 
+the score density could be expected to fit in the Gaussian bell curve.
+
+**Simple plot with linear fitting**
+
+We might be especially interested how the different estimated learning modes affect the score.
+For instance, the strategic learning shows out promising. :
+
+```{r}
+# A scatter plot of students strategic approach on points, fitter by gender
+qplot(stra, points, col = gender, data = lrn14) + geom_smooth(method = "lm")
+```
+
+
+Instead of examining a single variable's effect and distribution, we might
+want to have a graphical overview of them all, with GGally
+
+
+
+```{r}
+# graphical plot matrix exploration of the variables with ggpairs()
+library(GGally)
+
+# create an plot matrix with ggpairs()
+ggpairs(lrn14, lower = list(combo = wrap("facethist", bins = 20)))
+```
+
+
+### iii) Fitting a linear model with function lm()
+
+I choose three variables (age, attitude, strategic approach) as explanatory variables.
+A regression model is fitted to these variables where exam points is the dependent (output) variable. 
+
+Below is a summary of the fitted model and comment and interpret the results.
+
+```{r}
+# create a regression model with multiple explanatory variables
+my_model2 <- lm(points ~ attitude + stra + age, data = lrn14)
+```
+
+
+The parameter given to lm() is a so-called *formula*. 
+Here, it states the output variable and after the tilde mark are 
+the examined coefficients are listed.
+In this model the coefficients are ought to be independent of each other.
+
+```{r}
+# print out a summary of the model
+summary(my_model2)
+```
+The summary() function for a lm() model shows correlations and F-scores to the coefficients.
+
+Coefficient correlation is the "tiltedness" of the fitted linear estimate
+for the effect of the input variable and output.
+
+The statistical F-test is the so-called test of equality of variances.
+The smaller the p-value is, the more probable is that the alternative hypothesis,
+that the coefficient has a meaningful statistical relationship on the output.
+
+### iv) Understanding the fitted model output
+
+As the legend says from summary(), R prints nicely "***" on a strong significance, 
+and "." on a smaller probability of significance.
+(Usually most social studies use the 95 percent confidence rule as the baseline.)
+
+This model can be understood so that the attitude has a very strong relationship
+with the exam score. Also age does matter and so does the usage of strategic
+learning modes.
+
+Using a summary of your fitted model, explain the relationship between the chosen explanatory variables and the target variable (interpret the model parameters). Explain and interpret the multiple R squared of the model. (0-3 points)
+
+
+### v) Some useful plots on the fitted model
+
+```{r}
+plot(my_model2)
+```
+
+These graphs help us understand and evaluate, how appropriate our 
+statistical model for estimating the effect of student's age, attitude towards
+statistics and their adaptation of strategic learning methods.
+
+The **Residuals vs fitted values** graph shows a general visualization how well this
+linear model fits the data. If the residuals are uniformly scattered from the
+low to high end of fitted values, we can be pretty comfortable with these coefficients.
+
+The **Normal Q-Q plot** is a quick visualization, on how well the error residuals distribution
+follows the Gaussian distribution. If most of the values are laid among the dotted diagonal,
+we could be assured there is no further systematic "explaining" variable to be examined.
+
+The **Residuals vs leverage** graph is a useful tool for finding *outliers* in a model.
+An *outlier* is a data point that its output value is exceptionally far from the estimate
+that is produced from the variables. 
+In other words, any points over the dotted red line would have high influence on the
+fitted model. Probably any of the points do not have specifically high influence
+on our model coefficients, and the residuals are quite normally distributed.
+
+
+
+
+
+
+
