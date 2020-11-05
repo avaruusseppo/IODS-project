@@ -1,40 +1,38 @@
 # Chapter 2 - Data analysis exercise
 
-Let us begin
-### i) I load a prepared data set and examine its contents.
+Fri 06 Nov 2020
 
-Loading a prepared csv table, containing data from a learning study
+### i) Loading a prepared data set and examine its contents.
+
+Loading a prepared csv table, containing data from a learning study 
 (International survey of Approaches to Learning, Kimmo Vehkalahti, fall 2016).
+Metainformation: https://www.mv.helsinki.fi/home/kvehkala/JYTmooc/JYTOPKYS3-meta.txt
 
 ```{r}
 lrn14<-read.csv("data/learning2014.csv")
+print(dim(lrn14))
 str(lrn14)
 ```
 
+
+A quick overview of the contents in this data:
+
+This is a learning study on a statistics students, observing the different factors that might relate to a high or low exam score (points) for students of different ages and genders.
+
+The students were interviewed about their attitude towards statistics, and different
+motivational questions about their modes of learning. 
+
+The mode-related questions are grouped in three different categories (deep, surface and strategic). The category modes are averages of the numeric questionnaire results.
+
 By examining the structure, we can see that the data has 166 observations in 7 variable columns.
-A quick overview:
 
-* Three background attributes given from the informants: __attitude estimate, age and gender__.
+  * Three background attributes given from the informants: __attitude estimate, age and gender__.
+  * Three pre-processed learning factors are: __surface, deep and strategic__.
+  * Data "points" describe the exam __points__ or the output score. (Note! Zero exam point score rows are filtered out.)
 
-* Three computed learning factors are: __surface, deep and strategic__.
+### ii) An overview of the data
 
-* Data points have a raw course __points__ score. (Note! Zero point scores are filtered out.)
-
-### ii) A graphical overview of the data
-
-```{r}
-# Access the 'ggplot2' graphics package
-library(ggplot2)
-
-# A scatter plot of students attitude and exam points
-qplot(attitude, points, col = gender, data = lrn14) + geom_smooth(method = "lm")
-```
-
-When we examine graphically the correlation of attitude to learning and the scores,
-we can find a positive correlation. What we can see here is that the gender is not too much a factor in the course scores.
-
-
-The **summary() function**, quickly shows the ranges where the values reside.
+The **summary()** function for a data frame in R shows the ranges where the values of variables reside.
 
 ```{r}
 # This show summaries of the variables in the data
@@ -52,77 +50,99 @@ the score density could be expected to fit in the Gaussian bell curve.
 
 **Simple plot with linear fitting**
 
-We might be especially interested how the different estimated learning modes affect the score.
-For instance, the strategic learning shows out promising. :
+We'll try quickly a scatter plot with matching attitude to exam points.
+This is quite much what the excel chart wizards do (but nothing more).
+
+```{r}
+# We need the 'ggplot2' graphics package and ggpairs (from GGally)
+library(ggplot2)
+library(GGally)
+
+# A scatter plot of students attitude and exam points
+qplot(attitude, points, col = gender, data = lrn14) + geom_smooth(method = "lm")
+```
+
+When we examine graphically the correlation of attitude to learning and the scores,
+we can find a positive correlation. What we can see here is that the gender is not too much a factor in the course scores. A great attitude would predict a high score so we would expect a positive correlation.
+
+As a second example, we might be especially interested how the different estimated learning modes affect the score. For instance, the strategic learning shows out promising. A positive correlation is shown as a linear model fitted towards the upper right-hand corner.
 
 ```{r}
 # A scatter plot of students strategic approach on points, fitter by gender
 qplot(stra, points, col = gender, data = lrn14) + geom_smooth(method = "lm")
 ```
 
-
-Instead of examining a single variable's effect and distribution, we might
+Now, instead of examining a single variable's effect and distribution, we might
 want to have a graphical overview of them all, with GGally
 
-
-
 ```{r}
-# graphical plot matrix exploration of the variables with ggpairs()
-library(GGally)
 
-# create an plot matrix with ggpairs()
 ggpairs(lrn14, lower = list(combo = wrap("facethist", bins = 20)))
 ```
 
 
 ### iii) Fitting a linear model with function lm()
 
-I choose three variables (age, attitude, strategic approach) as explanatory variables.
-A regression model is fitted to these variables where exam points is the dependent (output) variable. 
+We continue building a linear model with multiple variables. This model is something that predicts the output variable (exam score) from input variables. 
 
-Below is a summary of the fitted model and comment and interpret the results.
+After examining the matrix plot above,I choose three variables: **age, attitude** and **strategic approach**) as explanatory input variables. A regression model is fitted to these variables where exam points is the dependent (output) variable. 
+
+Below is a summary of the fitted model and comment, with an interpretation of the R output.
 
 ```{r}
 # create a regression model with multiple explanatory variables
 my_model2 <- lm(points ~ attitude + stra + age, data = lrn14)
 ```
 
-
-The parameter given to lm() is a so-called *formula*. 
-Here, it states the output variable and after the tilde mark are 
-the examined coefficients are listed.
-In this model the coefficients are ought to be independent of each other.
+The parameter "*points ~ attitude + stra + age*" is a so-called *formula*. 
+It states the dependent variable on the left-hand side of the tilde ("~") mark.
+On the right-hand side are the examined coefficients are listed.
+In this model, the coefficients are ought to be independent of each other.
 
 ```{r}
 # print out a summary of the model
 summary(my_model2)
 ```
-The summary() function for a lm() model shows correlations and F-scores to the coefficients.
+The summary() function for a lm() model shows correlations and F-scores to the coefficients, which are practically the input variables for our model.
 
-Coefficient correlation is the "tiltedness" of the fitted linear estimate
+At first R outputs a summary of the weighted residuals distribution. 
+These are the error residuals between the estimated and registered output values (points).
+
+The first listed coefficient (intercept) is a baseline, that is a fixed the mean of the output.
+The following coefficients are expected to affect the output at some correlation.
+The coefficient correlation is the "slope" of the fitted linear estimate
 for the effect of the input variable and output.
 
-The statistical F-test is the so-called test of equality of variances.
-The smaller the p-value is, the more probable is that the alternative hypothesis,
-that the coefficient has a meaningful statistical relationship on the output.
+For each coefficient, R prints out a t-statistic (so-called Student's test) and a p-value, 
+which reflects the probability of significant correlation between 
+the coefficient and the output variable.
+R pretty-prints nicely significance codes: E.g. "***" on a strong significance (p<0.001),  and "." on a smaller significance (0.05 < p < 0.1) .
+(Usually most social studies use the 95 percent confidence rule as the baseline but we can accept this model for now.)
+
+The F-statistic is the so-called test of equality of variances.
+The smaller the p-value is, the more probable is the alternative hypothesis becomes.
+In other words a small p-value shows that the model has a meaningful statistical relationship.
+
+The R squared is fraction of variance explained by the model. In other words, if this value is large, the model gives a good fit and there is little or no need to search for additional explaining variables.
 
 ### iv) Understanding the fitted model output
 
-As the legend says from summary(), R prints nicely "***" on a strong significance, 
-and "." on a smaller probability of significance.
-(Usually most social studies use the 95 percent confidence rule as the baseline.)
 
-This model can be understood so that the attitude has a very strong relationship
-with the exam score. Also age does matter and so does the usage of strategic
-learning modes.
 
-Using a summary of your fitted model, explain the relationship between the chosen explanatory variables and the target variable (interpret the model parameters). Explain and interpret the multiple R squared of the model. (0-3 points)
+The multiple R squared of the model is 0.2182. I would have expected to have a little higher R squared. This gives an impression there would be still more descriptive variables "out there" to be added to the model. Still the R squared is positive so the model is better than fitting a straight horizontal line.
 
+In conclusion, this model can be understood so that the **attitude** variable has a very significant relationship with the exam score, having a p value < 0.001. This means that
+this alternative hypothesis is very string.
+
+Also the **age** and **strategic learning mode** have somewhat significant relation on the output, since the probability of null hypothesis (ie. no significance) is less than 0.1.
+It seems the higher age would predict slightly lower exam score, and using strategic learning
+would produce some extra exam points. Such effect might be worth of further study.
 
 ### v) Some useful plots on the fitted model
 
+R has this convenience function for plotting lm() models:
 ```{r}
-plot(my_model2)
+plot(my_model2,c(1,2,5))
 ```
 
 These graphs help us understand and evaluate, how appropriate our 
