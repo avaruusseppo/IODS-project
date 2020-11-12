@@ -1,0 +1,16 @@
+# Chapter 3 - Logistic Regression
+
+Fri 13 Nov 2020
+
+### i) Loading the alc merged data set
+
+```{r}
+alc<-read.csv("data/alc.csv")
+print(dim(alc))
+str(alc)
+```
+A quick overview of the contents in this data:
+This is a student alcohol usage survey data. From two course surveys,
+scores averaged, from students with Portugese and math courses.
+
+
