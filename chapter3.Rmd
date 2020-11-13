@@ -1,16 +1,175 @@
 # Chapter 3 - Logistic Regression
-
+```{r message = FALSE, warnings = FALSE}
+library(ggplot2, quietly = T)
+library(GGally, quietly = T)
+library(tidyr, quietly = T); library(dplyr, quietly = T);
+```
 Fri 13 Nov 2020
 
-### i) Loading the alc merged data set
+## Loading the alcohol data set
+
+From data/alc.csv file:
 
 ```{r}
 alc<-read.csv("data/alc.csv")
 print(dim(alc))
-str(alc)
 ```
-A quick overview of the contents in this data:
-This is a student alcohol usage survey data. From two course surveys,
-scores averaged, from students with Portugese and math courses.
+**A quick overview of the contents in this data:**
+This is a student performance vs alcohol usage survey data. 
+Data is joined from two course survey data sets,
+scores averaged, from 382 distinct students with both Portugese and math courses.
+Added average numberic column alc_use for average alcohol consumption (likert 0...5) 
+and logical column high_use (which is TRUE if alc_use is higher than 2).
 
+```{r}
+colnames(alc)
+```
+Data contains school performance scores (Grades after periods 1-3), absences, alcohol use
+and some binary background data such as school name, gender, age, home location type.
+Numeric likert-scale estimates (from 1 to 5 values) on family relations, freetime activity,
+going out and health. More information at:
+https://archive.ics.uci.edu/ml/datasets/Student+Performance
+ * NB! added alcohol use columns (average and logical (high consumption))
+
+## Hypothesis about high alochol consumption
+
+Alcohol might be consumed at high rate if the initial G1 grades are low
+and family relations are at low level. Also stated male gender  
+and higher age might induce high alcohol usage.
+
+A graphical summary:
+```{r message=FALSE, warning=FALSE, include=FALSE}
+library(GGally)
+ggpairs(alc,columns = c('alc_use','age','sex','famrel','G1'))
+```
+
+Some plots on these factors, first a bar plot of how the alc_use variable is distributed
+
+```{r}
+
+g1 <- ggplot(alc, aes(x = high_use, y = G1, col = sex))
+g1 + geom_boxplot() + ylab("age")+ggtitle("Student initial grades by high alcohol consumption and gender")
+```
+
+It seems like the age of high alcohol users is a bit higher, in all guardian types.
+
+Then let's see the age distribution within high and low users.
+
+```{r}
+# initialize a plot of 'high_use'
+g2 <- ggplot(alc, aes(x=(age), fill=sex))
+
+g2 + facet_wrap("high_use")  + geom_bar() + ggtitle("age distributions by high alcohol usage and gender")
+
+```
+
+Seems like the age distribution might be relevantly different in the high alcohol consumers.
+
+```{r}
+g1 <- ggplot(alc, aes(x = high_use, y = famrel, col = sex))
+g1 + geom_boxplot() + ylab("famrel")+ggtitle("Family relation estimate by high alcohol consumption and gender")
+```
+
+These seem promising to the hypothesis model.
+
+ ****
+
+## Logistic regression
+
+Now I'm about to do a fitting with the binomial distribution 
+(high alcohol consumers vs the control group)
+
+```{r}
+# find the model with glm()
+m <- glm(high_use ~ age + sex + G1 + famrel, data = alc, family = "binomial")
+
+summary(m)
+coef(m)
+```
+
+All the coefficients seem to be somewhat relevant to predicting high usage.
+This can be more easily understood as odds ratios, which are the exponents
+of the coefficients. 
+
+**Odds ratios** and their confidence intervals:
+
+```{r}
+# compute odds ratios (OR)
+OR <- coef(m) %>% exp
+
+# compute confidence intervals (CI)
+CI <- confint(m) %>% exp
+
+cbind(OR, CI)
+```
+
+**Analysis of the fitted model:**
+It seems like the good family relations reduce the high alcohol consumption.
+Higher age and male gender seems also to be an inducing factor to high consumption.
+Higher grades at first period studies also give a hint towards lesser probable high consumption.
+
+All in all, we'll keep these coefficients as the factors of our prediction.
+
+
+## Cross tabulation of a prediction model
+
+First, I create a prediction and probability column, based on the fitting.
+
+```{r}
+# predict() the probability of high_use
+probabilities <- predict(m, type = "response")
+```
+
+Adding the predicted probabilities to 'alc' and using the probabilities to make a prediction of high_use:
+
+```{r}
+alc <- mutate(alc, probability = probabilities)
+alc <- mutate(alc, prediction = probability > 0.5)
+```
+
+To understand and examine the prediction, let's see the last ten original classes, predicted probabilities, and "high use" class predictions:
+```{r}
+select(alc, age, sex, G1, famrel,high_use, probability, prediction) %>% tail(10)
+```
+**Now let's tabulate the target variable versus the predictions:**
+```{r}
+table(high_use = alc$high_use, prediction = alc$prediction)
+```
+
+**We can be pretty OK with this. **
+There is always a bit uncertainty but the model seems OK.
+A graphic evaluation of the probability and prediction results below:
+
+```{r}
+g <- ggplot(alc, aes(x = probability, y = high_use, col = prediction))
+g + geom_point() + ggtitle("cross-tabulation of prediction and high usage, with the probability parameter")
+
+```
+
+## 10-fold cross-validation of the prediction
+
+First let's define a loss function (which is the average error in prediction).
+
+```{r}
+# define a loss function (average prediction error)
+loss_func <- function(class, prob) {
+  n_wrong <- abs(class - prob) > 0.5
+  mean(n_wrong)
+}
+
+loss_func(class = alc$high_use, prob = alc$probability)
+```
+The computed average number of wrong predictions in the (training) data
+is around 0.29.
+
+Next, we'll do a ten-fold cross-validation with resampling
+
+```{r}
+library(boot)
+cv <- cv.glm(data = alc, cost = loss_func, glmfit = m, K = 10)
+
+cv$delta[1]
+```
+The average number of wrong predictions in the cross validation is not too
+small (about 3 wrong out of 10) but we're quite happy with this.
 
