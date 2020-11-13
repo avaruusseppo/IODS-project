@@ -1,8 +1,9 @@
 # Chapter 3 - Logistic Regression
-```{r message = FALSE, warnings = FALSE}
-library(ggplot2, quietly = T)
-library(GGally, quietly = T)
-library(tidyr, quietly = T); library(dplyr, quietly = T);
+```{r message = FALSE, warnings = FALSE, include=FALSE}
+library(ggplot2)
+library(GGally)
+library(tidyr)
+library(dplyr)
 ```
 Fri 13 Nov 2020
 
@@ -38,9 +39,11 @@ and family relations are at low level. Also stated male gender
 and higher age might induce high alcohol usage.
 
 A graphical summary:
-```{r message=FALSE, warning=FALSE, include=FALSE}
+```{r warning=FALSE}
 library(GGally)
-ggpairs(alc,columns = c('alc_use','age','sex','famrel','G1'))
+ggpairs(alc,
+        columns = c('alc_use','age','sex','famrel','G1'),
+        lower = list(combo = wrap("facethist", bins = 30)))
 ```
 
 Some plots on these factors, first a bar plot of how the alc_use variable is distributed
