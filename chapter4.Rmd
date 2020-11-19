@@ -1,0 +1,77 @@
+
+# Chapter 4 - Clustering
+Seppo Nyrkkö _Fri Nov 20, 2020_
+
+
+ok
+
+```{r}
+# Load the Boston data from the MASS package. 
+```
+
+
+```{r}
+#structure and the dimensions of the data
+```
+
+describe the dataset briefly
+
+
+###  graphical overview of the data
+
+```{r}
+
+# show summaries of the variables in the data. 
+
+```
+Describe and interpret the outputs, 
+
+comment on the distributions of the variables 
+and the relationships between
+
+
+Standardize the dataset
+```{r}
+# and print out summaries of the scaled data. 
+```
+
+How did the variables change? Create a categorical variable of the crime rate in the Boston dataset (from the scaled crime rate). 
+Use the quantiles as the break points in the categorical variable. Drop the old crime rate variable from the dataset. Divide the dataset to train and test sets, so that 80% of the data belongs to the train set. (0-2 points)
+
+
+### LDA  on the train set. 
+
+Use the categorical crime rate as the target variable and all the other variables in the dataset as predictor variables. 
+
+```{r}
+
+# Draw the LDA (bi)plot.
+
+```
+
+## prediction of crime categories
+
+Save the crime categories from the test set and then remove the categorical crime variable from the test dataset. 
+
+Then predict the classes with the LDA model on the test data. 
+
+```{r}
+# Cross tabulate the results with the crime categories from the test set. 
+```
+
+Comment on the results. (0-3 points)
+
+
+## k-means
+
+### let's standardize the Boston dataset 
+### scale the variables to get comparable distances).
+### Calculate the dist() ances between the observations. 
+### Run k-means algorithm on the dataset. 
+### optimal number of clusters 
+### and run the k-means  again. 
+
+### Visualize the clusters 
+### pairs() or ggpairs() where the clusters are separated with colors
+
+###  and interpret the results.

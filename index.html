@@ -467,6 +467,10 @@ summary {
 <li><a href="#cross-tabulation-of-a-prediction-model">Cross tabulation of a prediction model</a></li>
 <li><a href="#fold-cross-validation-of-the-prediction">10-fold cross-validation of the prediction</a></li>
 </ul></li>
+<li><a href="#chapter-4---clustering">Chapter 4 - Clustering</a><ul>
+<li><a href="#prediction-of-crime-categories">prediction of crime categories</a></li>
+<li><a href="#k-means">k-means</a></li>
+</ul></li>
 </ul>
 </div>
 
@@ -766,9 +770,69 @@ loss_func(class = alc$high_use, prob = alc$probability)</code></pre>
 cv &lt;- cv.glm(data = alc, cost = loss_func, glmfit = m, K = 10)
 
 cv$delta[1]</code></pre>
-<pre><code>## [1] 0.3036649</code></pre>
+<pre><code>## [1] 0.2931937</code></pre>
 <p>The average number of wrong predictions in the cross validation is not too small (about 3 wrong out of 10) but we’re quite happy with this.</p>
 <hr />
+</div>
+</div>
+<div id="chapter-4---clustering" class="section level1">
+<h1>Chapter 4 - Clustering</h1>
+<p>Seppo Nyrkkö <em>Fri Nov 20, 2020</em></p>
+<p>ok</p>
+<pre class="r"><code># Load the Boston data from the MASS package. </code></pre>
+<pre class="r"><code>#structure and the dimensions of the data</code></pre>
+<p>describe the dataset briefly</p>
+<div id="graphical-overview-of-the-data" class="section level3">
+<h3>graphical overview of the data</h3>
+<pre class="r"><code># show summaries of the variables in the data. </code></pre>
+<p>Describe and interpret the outputs,</p>
+<p>comment on the distributions of the variables and the relationships between</p>
+<p>Standardize the dataset</p>
+<pre class="r"><code># and print out summaries of the scaled data. </code></pre>
+<p>How did the variables change? Create a categorical variable of the crime rate in the Boston dataset (from the scaled crime rate). Use the quantiles as the break points in the categorical variable. Drop the old crime rate variable from the dataset. Divide the dataset to train and test sets, so that 80% of the data belongs to the train set. (0-2 points)</p>
+</div>
+<div id="lda-on-the-train-set." class="section level3">
+<h3>LDA on the train set.</h3>
+<p>Use the categorical crime rate as the target variable and all the other variables in the dataset as predictor variables.</p>
+<pre class="r"><code># Draw the LDA (bi)plot.</code></pre>
+</div>
+<div id="prediction-of-crime-categories" class="section level2">
+<h2>prediction of crime categories</h2>
+<p>Save the crime categories from the test set and then remove the categorical crime variable from the test dataset.</p>
+<p>Then predict the classes with the LDA model on the test data.</p>
+<pre class="r"><code># Cross tabulate the results with the crime categories from the test set. </code></pre>
+<p>Comment on the results. (0-3 points)</p>
+</div>
+<div id="k-means" class="section level2">
+<h2>k-means</h2>
+<div id="lets-standardize-the-boston-dataset" class="section level3">
+<h3>let’s standardize the Boston dataset</h3>
+</div>
+<div id="scale-the-variables-to-get-comparable-distances." class="section level3">
+<h3>scale the variables to get comparable distances).</h3>
+</div>
+<div id="calculate-the-dist-ances-between-the-observations." class="section level3">
+<h3>Calculate the dist() ances between the observations.</h3>
+</div>
+<div id="run-k-means-algorithm-on-the-dataset." class="section level3">
+<h3>Run k-means algorithm on the dataset.</h3>
+</div>
+<div id="optimal-number-of-clusters" class="section level3">
+<h3>optimal number of clusters</h3>
+</div>
+<div id="and-run-the-k-means-again." class="section level3">
+<h3>and run the k-means again.</h3>
+</div>
+<div id="visualize-the-clusters" class="section level3">
+<h3>Visualize the clusters</h3>
+</div>
+<div id="pairs-or-ggpairs-where-the-clusters-are-separated-with-colors" class="section level3">
+<h3>pairs() or ggpairs() where the clusters are separated with colors</h3>
+</div>
+<div id="and-interpret-the-results." class="section level3">
+<h3>and interpret the results.</h3>
+<hr />
+</div>
 </div>
 </div>
 
