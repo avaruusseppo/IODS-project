@@ -1,77 +1,269 @@
 
-# Chapter 4 - Clustering
+# Chapter 4 - Clustering and classification
 Seppo Nyrkkö _Fri Nov 20, 2020_
 
 
-ok
+## i. Load the Boston data from the MASS package. 
 
 ```{r}
-# Load the Boston data from the MASS package. 
+library(MASS)
+```
+
+```{r message = FALSE, warnings = FALSE, include=FALSE}
+
+# some familiar libraries, expect some excessive dump while loading
+
+library(ggplot2)
+library(GGally)
+library(corrplot)
+library(dplyr)
 ```
 
 
+
+## ii. The Boston data 
+is about housing values in the suburbs of Boston. 
+It comes along with the R MASS data set collection.
+
+_( Harrison, D. and Rubinfeld, D.L. (1978) Hedonic prices and the demand for clean air. J. Environ. Economics and Management 5, 81–102. -- Belsley D.A., Kuh, E. and Welsch, R.E. (1980) Regression Diagnostics. Identifying Influential Data and Sources of Collinearity. New York: Wiley. )_
+
+
 ```{r}
-#structure and the dimensions of the data
+# structure and the dimensions of the Boston data
+data("Boston")
+str(Boston)
+summary(Boston)
+```
+506 obs with 14 variables. All numerical.
+
+## iii. Graphical analysis
+
+```{r message = FALSE, warnings = FALSE}
+# let's take only a sample, this takes some cpu cycles and produces a grid of tiny plots
+ggpairs(Boston[sample(seq(1,nrow(Boston)),size=50),])
 ```
 
-describe the dataset briefly
+Some correlation can be seen in the scatter plots. Few distributions are normal,
+most are skewed or "double-bumped", meaning there are clusters inside the variables.
 
-
-###  graphical overview of the data
 
 ```{r}
-
-# show summaries of the variables in the data. 
-
-```
-Describe and interpret the outputs, 
-
-comment on the distributions of the variables 
-and the relationships between
-
-
-Standardize the dataset
-```{r}
-# and print out summaries of the scaled data. 
-```
-
-How did the variables change? Create a categorical variable of the crime rate in the Boston dataset (from the scaled crime rate). 
-Use the quantiles as the break points in the categorical variable. Drop the old crime rate variable from the dataset. Divide the dataset to train and test sets, so that 80% of the data belongs to the train set. (0-2 points)
-
-
-### LDA  on the train set. 
-
-Use the categorical crime rate as the target variable and all the other variables in the dataset as predictor variables. 
-
-```{r}
-
-# Draw the LDA (bi)plot.
+# let us try the cor() matrix and corrplot()
+cor_matrix <- cor(Boston)
+corrplot(cor_matrix, method="circle", type="upper", cl.pos="b", tl.pos="d", tl.cex=0.6)
 
 ```
 
-## prediction of crime categories
+The correlation plot shows a few interesting positive correlations
+(radial highways and property tax, nitrogen oxides and industrial acres)
+and negative correlations
+(between industrial acres and distance to central areas; and median home values and lower status of population). Seems quite ok.
 
-Save the crime categories from the test set and then remove the categorical crime variable from the test dataset. 
+## iv. Normalize the dataset
+```{r}
+# print out summaries of the scaled data. 
 
-Then predict the classes with the LDA model on the test data. 
+boston_sc <- as.data.frame(scale(Boston))
+
+summary(boston_sc)
+
+```
+
+The means are all zero as expected. There is also the unit variance per each variable.
+
+Now let's calculate the crime quantiles (from the scaled crime rate). 
+```{r}
+bins = quantile(boston_sc$crim)
+bins
+labels = c("low", "med_low", "med_high", "high")
+crime <- cut(boston_sc$crim,
+             breaks=bins,
+             labels=labels,
+             include.lowest=TRUE)
+boston_sc <- dplyr::select(boston_sc, -crim)
+boston_sc <- data.frame(boston_sc, crime)
+str(boston_sc)
+```
+We have a crime factor, great. Now dividing the dataset to train and test sets: 80% goes in training
+
 
 ```{r}
+
+ind <- sample(seq(1,nrow(boston_sc)), size=nrow(boston_sc) * 0.8)
+train <- boston_sc[ind,]
+test <- boston_sc[-ind,]
+str(train)
+dim(train)
+dim(test)
+```
+train and test sets seem OK.
+
+## v. LDA on the train
+
+Using the categorical crime rate as target variable. 
+Other variables as predictor variables. 
+
+```{r}
+model = lda(crime ~ ., data=train)
+model
+```
+
+Draw the LDA (bi)plot. Use color from the crime factor index.
+```{r}
+classes = as.numeric(train$crime)
+plot(model, dimen=2, col=classes, pch=classes)
+```
+
+Seems like the highest crime quantile is separable from other clusters.
+We can proceed to the model testing part.
+
+## vi. Testing the prediction
+
+```{r}
+# remove the crime factor from the test set
+correct_classes = test$crime
+test <- dplyr::select(test, -crime)
+str(correct_classes)
+```
+```{r}
+str(test)
+```
+Test doesn't have the correct answer - ok
+
+Prediction of crime categories with LDA using the prepared test data:
+```{r}
+predictions = predict(model, newdata=test)
+
 # Cross tabulate the results with the crime categories from the test set. 
+table(correct=correct_classes, predicted=predictions$class)
+```
+This produces quite a fair confusion matrix with a strong diagonal.
+Some confusion between low and med_low is apparent, otherwise this is very OK.
+
+
+
+
+## vii. k-means
+
+Let's reload and standardize the Boston dataset 
+
+```{r}
+data("Boston")
+
+# Scale the variables to mean zero and unit variance
+
+boston_sc <- as.data.frame(scale(Boston))
+
+# This is one of my favorite methods in R. (besides the heatmap)
+
+dist_eu <- dist(boston_sc, method="euclidean")
+summary(dist_eu)
+
+
+# Running k-means algorithm on the dataset. 
+# What is the optimal number of clusters? Try 4 ...
+
+km <- kmeans(boston_sc, centers=4)
+
+# Visualize the with a few variables as pairs
+pairs(boston_sc[c('tax','dis','age',
+                  'nox','indus')], col=km$cluster)
+
+```
+Ok.
+
+Seems like there are some clusters found, since we see some connection between the cluster color and the xy-position on the plot.
+
+Let's run the k-means again to find an optimal number of k clusters.
+
+```{r}
+# boston_sc dataset is available
+set.seed(123)
+
+# determine the number of clusters
+k_max <- 10
+
+# calculate the total within sum of squares
+twcss <- sapply(1:k_max, function(k){kmeans(boston_sc, k)$tot.withinss})
+
+# visualize the results
+qplot(x = 1:k_max, y = twcss, geom = 'line')
+
 ```
 
-Comment on the results. (0-3 points)
+Seems like there is a drop at 2 clusters.
+
+Let us do the clustering again with centers=2
+
+```{r}
 
 
-## k-means
+# k-means clustering
+km <-kmeans(boston_sc, centers = 2)
 
-### let's standardize the Boston dataset 
-### scale the variables to get comparable distances).
-### Calculate the dist() ances between the observations. 
-### Run k-means algorithm on the dataset. 
-### optimal number of clusters 
-### and run the k-means  again. 
 
-### Visualize the clusters 
-### pairs() or ggpairs() where the clusters are separated with colors
+# plot the Boston dataset with clusters
+pairs(boston_sc, col=km$cluster)
+```
 
-###  and interpret the results.
+Seems to be pretty ok. For a better picture, 
+let's look at the pairs data with the same variables as before:
+
+```{r}
+
+# plot the Boston dataset with clusters
+pairs(boston_sc[c('tax','dis','age',
+                  'nox','indus')], col=km$cluster)
+
+
+```
+We can be pretty happy with this. There are two distinct clusters.
+Some bleeding can still be seen, in some pairs but the other dimensions show very distinct
+split between the clusters.
+
+## extra: Arrows
+
+```{r}
+# Reload the original Boston dataset
+data("Boston")
+
+# Scale the variables  again to normalized
+
+boston_sc <- as.data.frame(scale(Boston))
+
+set.seed(123)
+
+# 3 clusters using k-means for targets
+km <- kmeans(boston_sc, centers=3)
+
+#  LDA using the km clusters 
+lda.fit <- lda(x=boston_sc, grouping=km$cluster)
+
+# Examine the object
+lda.fit
+
+```
+
+```{r}
+# now with arrows as in the datacamp task
+lda.arrows <- function(x, myscale = 1, arrow_heads = 0.1, 
+                       color = "magenta", tex = 0.75, choices = c(1,2))
+  {
+  heads <- coef(x)
+  arrows(x0 = 0, y0 = 0,
+         x1 = myscale * heads[,choices[1]],
+         y1 = myscale * heads[,choices[2]], col=color, length = arrow_heads)
+  text(jitter(myscale * heads[,choices]), labels = row.names(heads),
+       cex = tex, col="black", pos=3)
+}
+
+# Plot with arrows
+plot(lda.fit, dimen = 2, col=km$cluster, pch=km$cluster, ylim=c(-7,7),xlim=c(-10,10))
+lda.arrows(lda.fit, myscale = 5)
+```
+
+Two possible separate clusters could be explained by:
+i) high value homes and large lots (by surface area) and 
+ii) the closeness to radial highways.
+
+This clustering seems very appropriate, and we can be happy with this.
