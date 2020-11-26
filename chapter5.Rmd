@@ -1,0 +1,158 @@
+# Chapter 5 - PCA and MCA
+Seppo Nyrkkö _Fri Nov 27, 2020_
+
+
+## i. reading the human equality data
+
+```{r}
+
+library(ggplot2)
+library(GGally)
+
+# read human data, row names in first column
+
+
+human <- read.csv("data/human.csv",row.names=1)
+
+# examine the structure
+
+str(human)
+dim(human)
+summary(human)
+```
+
+The data has country as row name, ratio of 2nd education M/F, ratio of labor F/M,
+expected years of education, exp years of life, GNI of the nation, maternal mortality,
+adolescence birth rate and female parliament representation ratio.
+
+Let's see some ggpairs:
+
+```{r}
+ggpairs(human)
+```
+
+There might be some positive correlation between GNI and education years, and life years.
+Maternal mortality and adolescence birth  has inverse correlation with GNI. 
+
+```{r}
+hist(human$gni,breaks = seq(0,1,0.2)*max(human$gni),col='blue')
+```
+The highest GNI per capita rates are only in a few countries. Bear this in mind.
+
+
+## ii. Some PCA
+
+
+First, some PCA on the non-standardized data. 
+
+```{r}
+pc_human <- prcomp(human)
+pc_human
+summary(pc_human)
+```
+
+See the large differences in deviances.
+
+```{r}
+biplot(pc_human)
+```
+
+This also gives a "not too clear" biplot. The data seems to be on a single axis: gni.
+(Might be caused from the fact that dollars and percentages are of different ranges)
+
+## iii. PCA with standardized data 
+
+We'll continue to standardizing the variables, and do the PCA again.
+
+```{r}
+stdpc_human <- prcomp(scale(human))
+stdpc_human
+```
+Exploring some dimensions:
+```{r}
+barplot(stdpc_human$rotation[,1])
+title('PC1: high maternal mortality and adolescent birth rate')
+```
+
+```{r}
+barplot(stdpc_human$rotation[,2])
+title('PC2: high female labour ratio and parliament representation')
+```
+
+
+
+```{r}
+summary(stdpc_human)
+```
+
+## iv. Standardized human data biplot
+
+```{r}
+biplot(stdpc_human)
+```
+
+Now the component arrows are distinguishable. Also the biplot is clerer to read as a "map".
+
+The PC1 component shows the dimension where GNI is low and maternal mortality and adolescent birth rate is high. The PC2 component shows a dimension where female labor is common but also parliament representation rate is higher.
+
+
+
+
+## v. Tea dataset
+
+```{r}
+# some libraries
+library(FactoMineR)
+library(dplyr)
+library(tidyr)
+
+```
+
+Let's use the tea dataset which is a survey of tea consumption.
+300 individuals answered, how they drink tea (18 Q), what are their product's perception (12 Q) and some personal details (4 Q).
+
+```{r}
+data(tea)
+str(tea)
+```
+
+
+
+```{r}
+# reduced dataset
+tea_segments <- dplyr::select(tea, c("Tea", "relaxing", "effect.on.health", "sugar", "age_Q", "sex"))
+str(tea_segments)
+dim(tea_segments)
+summary(tea_segments)
+
+```
+
+Now let's do Multiple Correspondence Analysis on the reduced tea data
+
+```{r}
+# some visualization
+gather(tea_segments) %>% ggplot(aes(value)) + facet_wrap("key", scales = "free") + geom_bar() + theme(axis.text.x = element_text(angle = 30, hjust = 1, size = 10))
+
+
+```
+
+We can see our factors are populated enough in all categories, in order to make some further analysis of our reduced data set.
+
+Now continuing to the MCA (which is kind of categorial PCA):
+
+```{r}
+mca <- MCA(tea_segments, graph = FALSE)
+# summary of the model
+summary(mca)
+# visualize MCA
+plot(mca, invisible=c("ind"), habillage = "quali")
+```
+
+This gives a rather nice plot to understand the correlation between young age group (15-24) and Earl Grey tea, which is the most commonly available blend in tea.
+
+Black tea is common choice for all age groups over 35 years. 
+
+Sugar consumption is more common in the lower age groups, as the taste buds are not yet 'driven in', so to say.
+
+If designing a set of tea flavors, this graph could give a hint to create product packages and images appealing to the targeted market segments.
+
