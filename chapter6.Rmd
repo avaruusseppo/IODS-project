@@ -2,4 +2,272 @@
 
 Seppo Nyrkkö _Fri Dec 4, 2020_
 
+## Reading the data in.
 
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+# Rats diet weighting data in long format
+longrats <- read.csv("data/ratslong.csv")
+
+# BPRS patient treatment scores
+longbprs <- read.csv("data/bprslong.csv")
+```
+
+## i) RATS analysis
+
+```{r}
+
+summary(longrats)
+str(longrats)
+
+```
+### Quick summary of the long data (Rats):
+* Rats have unique IDs.
+* Control group category (factorized) is the diet Group
+* Time axis is numeric in days
+* Longitudinal measurements are weights
+
+```{r}
+#  Some ggplots
+
+# Display the data graphically, first by groups.
+
+ggplot(longrats, aes(x = days, y = weight, linetype = ID)) +
+  geom_line() +
+  scale_linetype_manual(values = rep(1:10, times=4)) +
+  facet_grid(. ~ Group, labeller = label_both) +
+  theme(legend.position = "none") +
+  scale_y_continuous(limits = c(min(longrats$weight), max(longrats$weight)))
+
+```
+
+Seems like the grouping is done and handled correctly.
+Time goes in the right direction and weight grows as the days pass.
+
+Group 1 doesn't gain weight as much as groups 2 and 3.
+An outlier rat in group 2 is a bit heavier but still 
+belongs to the correct diet group.
+
+
+Since the initial weights differ so much we can understand better
+the effects of the diets by standardizing the data
+```{r}
+# Standardizing = zero mean, unit = standard deviance
+longrats <- longrats %>%
+  group_by(days) %>%
+  mutate(stdWeight = (weight - mean(weight)) / sd(weight)) %>%
+  ungroup()
+str(longrats)
+
+```
+This seems to adjust our weights per normal growth.
+Again, graphically:
+```{r}
+ggplot(longrats, aes(x = days, y = stdWeight, linetype = ID)) +
+  geom_line() +
+  scale_linetype_manual(values = rep(1:10, times=4)) +
+  facet_grid(. ~ Group, labeller = label_both) +
+  scale_y_continuous(name = "std weight")
+```
+
+This looks much promising. The control group (1) seems to stay
+at the center, and two diet groups (2 and 3) seem to affect the
+weight at some direction as the time passes.
+
+Now calculate the group means and errors.
+```{r}
+
+# some fancy pipelining 
+ratgroups <- longrats %>%
+  group_by(Group, days) %>%
+  summarise(mean = mean(weight), se = sd(weight) / sqrt(length(weight))) %>%
+  ungroup()
+
+summary(ratgroups)
+dim(ratgroups)
+```
+
+Now we get a graphical analysis how the groups react to the diets
+per days run:
+```{r}
+ggplot(ratgroups,
+  aes(x = days, y = mean, linetype = Group, shape = Group)) +
+  geom_line() +
+  geom_point(size=3) +
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se, linetype="2"), width=1) +
+  theme(legend.position = c(0.8,0.8,0.8)) +
+  scale_y_continuous(name = "mean(weight) +/- std err")
+```
+
+
+To validate our rats, we can do the boxplot with error bars
+to visually determine whether
+our weight groups are okay or if they contain outlier rats.
+
+```{r}
+ratbox <- longrats %>%
+  filter(days > 1) %>%
+  group_by(Group, ID) %>%
+  summarise(mean=mean(weight) ) %>%
+  ungroup()
+
+```
+
+```{r}
+ggplot(ratbox, aes(x = Group, y = mean)) +
+  geom_boxplot() +
+  stat_summary(fun = "mean", geom = "point", shape=1, size=8, fill = "white", col="red") +
+  scale_y_continuous(name = "mean(weight) days from 1 upwards")
+
+```
+
+
+```{r}
+summary(ratbox$Group)
+```
+Since there are only 4 rats in groups 2 and 3, it's really hard
+to say if there are any outliers. We are happy with the one
+suspiciously heavy rat in group 2. 
+
+**Let's continue to the hypothesis testing then.**
+The first question is whether the mean weight of group 1 differs from others.
+
+```{r}
+# Two-sample t-test
+ratbox$isGrp1 <- ratbox$Group=="Grp1"
+t.test(mean ~ isGrp1, data=ratbox, var.equal=T)
+
+```
+
+This gives the 95% confidence range of group 1 as weighing from 202 to 284 grams.
+
+
+**Now adding a initial weight from the first day before the diets**
+
+```{r}
+# Since we are interested in the growth profile of these rats we take in account
+# the day 1 weight
+
+ratinit <- longrats %>%
+  filter(days == 1) %>%
+  group_by(Group, ID) %>%
+  summarise(initialW=mean(weight) ) %>%
+  ungroup()
+
+ratbox$initialW=ratinit$initialW
+
+fit <- lm(mean ~ initialW + isGrp1, data=ratbox)
+fit
+
+anova(fit)
+```
+It seems like the group 1 has a 95% confidence to be of a different
+growth profile. The visual examination supports this interpretation.
+
+
+
+## ii) BPRS analysis
+
+
+```{r}
+str(longbprs)
+summary(longbprs)
+
+```
+### Quick summary of the long data:
+* Subjects have unique subject-IDs (factorized).
+* Group category is the treatment id (factorized) 
+* Time axis is numeric in weeks
+* Measurements are bprs score 
+
+
+```{r}
+glimpse(longbprs)
+summary(longbprs)
+```
+Let's visually analyze the BPRS study groups:
+```{r}
+
+ggplot(longbprs, aes(x=weeks, y=bprs, linetype=subject)) +
+  geom_line() +
+  scale_linetype_manual(values=rep(1:10, times=4)) +
+  facet_grid(. ~ treatment, labeller=label_both) +
+  scale_y_continuous(name="BPRS", limits=c(0,100)) +
+  theme(legend.position="top")
+
+```
+
+Okay this looks really good. At least the data is read in correctly and
+this correlates to what we read in from the original bprs survey data.
+
+We cannot be exactly sure whether the scores go down with the treatment
+T1 group, but let's continue with the analysis. The variance in T2 scores
+makes it difficult to visually compare the trend during the treatment weeks.
+
+Let's try some regression modeling
+
+```{r}
+
+bprsreg <- lm(bprs ~ weeks + treatment, data=longbprs)
+summary(bprsreg)
+```
+
+This doesn't show yet any significance of the treatment,
+as regards to the group means,
+but the weeks undergone seems to be a significant variable.
+
+Since the observations are from repeating individuals,
+we would like to introduce some **mixed models** here.
+We can try to see whether we allow the **unique subject id** to
+count as a *random effect*:
+
+
+```{r}
+library(lme4)
+
+# Random intercept model per subject:
+
+bprs_sub <- lmer(bprs ~ weeks + treatment + (1 | subject), data=longbprs, REML = F)
+summary(bprs_sub)
+
+```
+
+```{r}
+# Now random intercept and ALSO A random slope model
+
+bprs_subweek <- lmer(bprs ~ weeks + treatment + (weeks | subject), data=longbprs, REML = F)
+summary(bprs_subweek)
+
+```
+Now let's run an ANOVA test against these two random effects models
+
+```{r}
+anova(bprs_sub, bprs_subweek)
+```
+
+**We would like to conclude that the model which takes the subject id and the personal slope as a random effect fits the data quite well!**
+
+Let's plot the fitted curves to examine this visually
+
+```{r}
+
+# Compute the fitted values 
+Fitted <- fitted(bprs_subweek, longbprs)
+
+# Add a new column for the fitted data
+bprslongfit <- mutate(longbprs, bprs=Fitted)
+
+# Draw a plot of bprs (fitted and observed)
+ggplot(bprslongfit, aes(x=weeks, y=bprs, group=subject)) +
+  geom_line(color="blue") +
+  geom_line(data=longbprs,color="red") +
+  scale_x_continuous(name="weeks") +
+  facet_grid(. ~ treatment, labeller=label_both) +
+  scale_y_continuous(name="BPRS fitted (blue) vs observed (red)") +
+  theme(legend.position="top")
+```
+
+This comparison helps understanding the random effects rather well.
